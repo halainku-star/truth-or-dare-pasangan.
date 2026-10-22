@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#8f3154">
+<title>Truth or Dare — Couple Edition</title>
+<style>
+:root{--wine:#8f3154;--rose:#d86b89;--cream:#fff8f5;--ink:#3e2630;--muted:#806a72}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink);background:radial-gradient(circle at top left,#ffe0e8,transparent 45%),linear-gradient(135deg,#fff8f5,#f8e6ec);display:flex;align-items:center;justify-content:center;padding:18px}
+.app{width:min(100%,650px)}.top{text-align:center;margin:4px 0 20px}.heart{font-size:34px}.top h1{margin:4px 0;font-size:clamp(28px,7vw,42px);color:var(--wine);letter-spacing:-1px}.top p{margin:6px 0;color:var(--muted)}
+.panel{background:#ffffffd9;border:1px solid #fff;box-shadow:0 18px 55px #8f31541c;border-radius:26px;padding:clamp(18px,5vw,30px)}
+.setup{display:grid;gap:14px}.names{display:grid;grid-template-columns:1fr 1fr;gap:12px}label{font-size:13px;font-weight:700;color:var(--muted);display:block;margin-bottom:7px}input,select{width:100%;padding:13px 14px;border:1px solid #efd4de;border-radius:13px;background:#fffafc;font:inherit;color:var(--ink);outline-color:var(--rose)}
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.mode{border:1px solid #efd4de;border-radius:13px;background:white;padding:12px 5px;color:var(--ink);font-weight:700;cursor:pointer}.mode.active{background:#fae2e9;border-color:var(--rose);color:var(--wine)}
+button{font:inherit}.primary{width:100%;border:0;border-radius:14px;padding:14px 18px;background:linear-gradient(135deg,var(--wine),var(--rose));color:white;font-weight:800;cursor:pointer;box-shadow:0 8px 20px #8f31542a}.secondary{border:1px solid #efd4de;border-radius:12px;padding:11px 14px;background:white;color:var(--wine);font-weight:700;cursor:pointer}.primary:active,.secondary:active,.mode:active{transform:scale(.99)}
+.game{display:none;text-align:center}.turn{color:var(--muted);font-size:14px;font-weight:700}.turn strong{color:var(--wine)}.question-card{margin:18px 0 16px;padding:26px 18px;border-radius:22px;background:linear-gradient(145deg,#fff0f4,#fffaf8);border:1px solid #f4dce4;min-height:210px;display:flex;flex-direction:column;justify-content:center;align-items:center}.kind{font-size:13px;font-weight:900;letter-spacing:2px;color:var(--rose)}.prompt{font-size:clamp(20px,5vw,27px);font-weight:800;line-height:1.35;margin:15px 0}.small{color:var(--muted);font-size:13px}.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.actions .primary{grid-column:1/-1}.progress{margin:17px 0 0;height:5px;background:#f2dce4;border-radius:10px;overflow:hidden}.progress span{display:block;height:100%;width:0;background:var(--rose);transition:width .3s}.footer{text-align:center;font-size:12px;color:var(--muted);margin:16px 0 0}.hidden{display:none!important}
+@media(max-width:420px){.names{grid-template-columns:1fr}.panel{border-radius:22px}.question-card{min-height:190px}}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="top"><div class="heart">💗</div><h1>Truth or Dare</h1><p>Couple Edition · Main, tertawa, dan makin dekat</p></header>
+  <section class="panel" id="setup">
+    <div class="setup">
+      <div class="names">
+        <div><label for="p1">NAMA PEMAIN 1</label><input id="p1" maxlength="24" placeholder="Mis. Muthi" value="Pemain 1"></div>
+        <div><label for="p2">NAMA PEMAIN 2</label><input id="p2" maxlength="24" placeholder="Mis. Angga" value="Pemain 2"></div>
+      </div>
+      <div><label>PILIH SUASANA</label><div class="modes">
+        <button class="mode active" data-mode="sweet">🌷 Manis</button>
+        <button class="mode" data-mode="fun">😂 Lucu</button>
+        <button class="mode" data-mode="deep">💌 Mendalam</button>
+      </div></div>
+      <div><label for="intensity">TINGKAT TANTANGAN</label><select id="intensity"><option value="easy">Santai & romantis</option><option value="mixed" selected>Campuran</option><option value="bold">Lebih berani (tetap sopan)</option></select></div>
+      <button class="primary" id="start">Mulai bermain 💞</button>
+      <p class="small" style="text-align:center;margin:0">Aturan: boleh melewati kartu kapan saja. Tidak ada paksaan—kenyamanan berdua nomor satu.</p>
+    </div>
+  </section>
+  <section class="panel game" id="game">
+    <div class="turn" id="turn"></div>
+    <div class="question-card"><div class="kind" id="kind">TRUTH</div><div class="prompt" id="prompt">Pertanyaan akan muncul di sini.</div><div class="small" id="counter"></div></div>
+    <div class="actions">
+      <button class="secondary" id="truth">💭 Truth</button><button class="secondary" id="dare">🔥 Dare</button>
+      <button class="primary" id="next">Selesai, giliran berikutnya →</button>
+      <button class="secondary" id="skip">Lewati kartu ↻</button><button class="secondary" id="restart">Mulai ulang</button>
+    </div>
+    <div class="progress"><span id="bar"></span></div>
+  </section>
+  <p class="footer">Dibuat untuk dimainkan berdua · Jujur, saling menghargai, dan bersenang-senang ✨</p>
+</main>
+<script>
+const cards = {
+ sweet:{
+  truth:[
+   "Hal kecil apa yang aku lakukan dan selalu bikin kamu senang?",
+   "Kapan kamu merasa paling disayang olehku?",
+   "Apa kenangan kita yang ingin kamu ulangi?",
+   "Apa panggilan sayang favoritmu dariku?",
+   "Apa hal sederhana yang ingin lebih sering kita lakukan bersama?",
+   "Apa kesan pertamamu saat bertemu denganku?",
+   "Sifatku apa yang diam-diam kamu kagumi?",
+   "Kalau kita punya satu hari bebas bersama, kamu ingin ke mana?",
+   "Apa lagu yang mengingatkanmu padaku?",
+   "Apa satu hal yang membuat hubungan kita terasa istimewa?"
+  ],
+  dare:[
+   "Tatap mataku selama 15 detik tanpa tertawa.",
+   "Berikan tiga pujian tulus untuk pasanganmu.",
+   "Pegang tangan pasanganmu dan ucapkan satu hal yang kamu syukuri.",
+   "Buat nama panggilan sayang baru untuk pasanganmu.",
+   "Peluk pasanganmu jika kalian berdua nyaman, selama 10 detik.",
+   "Tirukan cara pasanganmu tertawa dengan manis.",
+   "Kirim pesan romantis kepada pasanganmu meski sedang duduk bersebelahan.",
+   "Nyanyikan satu potong lagu yang mengingatkanmu pada pasangan.",
+   "Ceritakan satu kenangan favorit kalian dengan gaya dramatis.",
+   "Rencanakan kencan sederhana dengan budget kecil."
+  ]
+ },
+ fun:{
+  truth:[
+   "Kebiasaan lucuku apa yang paling sering kamu perhatikan?",
+   "Siapa di antara kita yang lebih sering ngambek? Kenapa?",
+   "Apa momen paling memalukan yang pernah kita alami bersama?",
+   "Kalau aku jadi karakter kartun, aku cocok jadi siapa?",
+   "Apa makanan aneh yang ingin kamu ajak aku coba?",
+   "Siapa yang paling lama memilih baju sebelum pergi?",
+   "Apa chat dariku yang pernah membuatmu tertawa sendiri?",
+   "Kalau kita ikut lomba pasangan, lomba apa yang mungkin kita menangkan?",
+   "Apa kebiasaanmu yang mungkin belum aku sadari?",
+   "Kalau hubungan kita punya judul film komedi, apa judulnya?"
+  ],
+  dare:[
+   "Bicara dengan aksen lucu selama satu putaran.",
+   "Lakukan ekspresi selfie paling kocak selama 5 detik.",
+   "Jelaskan kenapa pasanganmu keren seperti sedang promosi produk.",
+   "Joget bebas selama 10 detik tanpa musik.",
+   "Tirukan gaya pasanganmu saat sedang lapar.",
+   "Buat pantun spontan tentang pasanganmu.",
+   "Sebutkan lima hal tentang pasangan dalam 10 detik.",
+   "Buat iklan dramatis untuk camilan favorit pasangan.",
+   "Biarkan pasangan memilih satu emoji yang menggambarkanmu, lalu jelaskan.",
+   "Buat jabat tangan rahasia bersama selama 15 detik."
+  ]
+ },
+ deep:{
+  truth:[
+   "Apa yang membuatmu merasa aman dalam hubungan ini?",
+   "Bagaimana cara terbaik bagiku untuk mendukungmu saat kamu lelah?",
+   "Apa hal yang ingin kita perbaiki bersama tanpa saling menyalahkan?",
+   "Apa arti komitmen bagimu saat keadaan sedang sulit?",
+   "Apa impian yang ingin kamu wujudkan bersama pasangan?",
+   "Hal apa yang kadang sulit kamu ungkapkan, tetapi ingin aku pahami?",
+   "Bagaimana cara favoritmu menyelesaikan perbedaan pendapat?",
+   "Apa yang kamu pelajari tentang dirimu sejak kita bersama?",
+   "Apa batasan pribadi yang penting untuk selalu kita hormati?",
+   "Apa satu harapanmu untuk hubungan kita setahun ke depan?"
+  ],
+  dare:[
+   "Sampaikan satu apresiasi yang spesifik dan tulus kepada pasangan.",
+   "Bergantian sebutkan satu hal yang kalian syukuri hari ini.",
+   "Dengarkan pasangan bicara selama satu menit tanpa menyela.",
+   "Buat satu kesepakatan kecil agar komunikasi kalian lebih baik.",
+   "Ucapkan terima kasih untuk satu hal yang sering dianggap sepele.",
+   "Tanyakan, “Apa yang bisa aku lakukan agar kamu merasa lebih didukung?” lalu dengarkan.",
+   "Ceritakan satu impianmu dan minta pasangan menyebutkan cara mendukungnya.",
+   "Sebutkan satu kualitas pasangan yang membuatmu belajar menjadi lebih baik.",
+   "Buat rencana waktu berkualitas tanpa ponsel selama 20 menit.",
+   "Bergantian sampaikan satu harapan baik untuk satu sama lain."
+  ]
+ }
+};
+const boldTruth=[
+ "Hal apa yang paling membuatmu merasa dekat denganku?",
+ "Apa bentuk perhatian romantis yang paling kamu sukai?",
+ "Apa kencan impianmu yang belum pernah kita coba?",
+ "Apa pujian dariku yang paling ingin kamu dengar?",
+ "Apa hal baru yang ingin kita lakukan bersama dengan persetujuan berdua?"
+];
+const boldDare=[
+ "Bisikkan satu kalimat manis kepada pasangan, jika sama-sama nyaman.",
+ "Pilih lagu romantis dan ajak pasangan bergoyang selama 20 detik.",
+ "Beri pasangan cium tangan atau pelukan hanya jika kalian berdua setuju.",
+ "Buat rencana kejutan kecil yang bisa dilakukan minggu ini.",
+ "Tatap pasangan dan katakan satu hal yang membuatmu tertarik padanya."
+];
+let mode='sweet', player=0, turnNo=0, currentType='truth', seen=new Set();
+const $=id=>document.getElementById(id);
+document.querySelectorAll('.mode').forEach(btn=>btn.addEventListener('click',()=>{
+ document.querySelectorAll('.mode').forEach(b=>b.classList.remove('active'));btn.classList.add('active');mode=btn.dataset.mode;
+}));
+function pick(type){
+ currentType=type;
+ const intensity=$('intensity').value;
+ let list=[...cards[mode][type]];
+ if(intensity==='bold') list.push(...(type==='truth'?boldTruth:boldDare));
+ if(intensity==='easy') list=list.filter((_,i)=>i%2===0);
+ let available=list.map((text,i)=>({text,key:mode+'-'+type+'-'+text})).filter(c=>!seen.has(c.key));
+ if(!available.length){list.forEach(text=>seen.delete(mode+'-'+type+'-'+text));available=list.map(text=>({text,key:mode+'-'+type+'-'+text}));}
+ const item=available[Math.floor(Math.random()*available.length)];seen.add(item.key);
+ $('kind').textContent=type==='truth'?'💭 TRUTH':'🔥 DARE';
+ $('prompt').textContent=item.text;
+ $('counter').textContent='Kartu '+(seen.size)+' · '+(mode==='sweet'?'Manis':mode==='fun'?'Lucu':'Mendalam');
+ $('turn').innerHTML='Giliran: <strong>'+escapeHtml(playerName(player))+'</strong>';
+ $('bar').style.width=(Math.min(100,(turnNo%10+1)*10))+'%';
+}
+function playerName(i){return ($('p'+(i+1)).value.trim()||'Pemain '+(i+1));}
+function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+$('start').onclick=()=>{$('setup').style.display='none';$('game').style.display='block';player=0;turnNo=0;seen.clear();pick('truth');};
+$('truth').onclick=()=>pick('truth');
+$('dare').onclick=()=>pick('dare');
+$('next').onclick=()=>{player=1-player;turnNo++;pick(Math.random()<.5?'truth':'dare');};
+$('skip').onclick=()=>pick(currentType);
+$('restart').onclick=()=>{ $('game').style.display='none';$('setup').style.display='block';seen.clear();};
+</script>
+</body>
+</html>
